@@ -39,7 +39,6 @@ def btn_click():
         out_txt.delete(0, tk.END)
         out_txt.insert(tk.END, name_list2)
 
-
 #クリア
 def delete_btn_click(): 
     out_txt.delete(0, tk.END)
@@ -79,11 +78,9 @@ def list_clear():
         out_txt.delete(0, tk.END)
         out_txt.insert(tk.END, clear_name+"さんをリストから削除しました")
 
-
 #検索ボタン
 btn = tk.Button(root, text='検索', command=btn_click)
 btn.place(x=110, y=140)
-
 
 #クリアボタン
 delete_btn = tk.Button(root, text='クリア', command = delete_btn_click)
