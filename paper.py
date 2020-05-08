@@ -1,5 +1,6 @@
 import tkinter as tk
 import tkinter.ttk as ttk
+from tkinter import messagebox
 import sqlite3
 import itertools
 
@@ -37,19 +38,14 @@ def create_gui():
 
         #商品名の読み取り
         item_name = entry1.get()
-
         #品番の読み取り
         item_number = entry2.get()
-
         #表面の読み取り
         item_surface = entry3.get()
-
         #材質の読み取り
         item_material = entry4.get()
-
         #用途の読み取り
         item_use = entry5.get()
-
 
         # SQLを発行してDBへ登録
         # また、コミットする場合は、commitメソッドを用いる
@@ -59,10 +55,16 @@ def create_gui():
             VALUES('{}','{}','{}','{}','{}','{}');
             """.format(item_code,item_name,item_number,item_surface,item_material,item_use))
             c.execute("COMMIT;")
-            print("1件登録しました")
+            #print("1件登録しました")
         # ドメインエラーなどにより登録できなかった場合のエラー処理
         except:
             print("エラーにより登録できませんでした")
+        #エントリー削除
+        entry1.delete(0,tk.END)
+        entry2.delete(0,tk.END)
+        entry3.delete(0,tk.END)
+        entry4.delete(0,tk.END)
+        entry5.delete(0,tk.END)
     # ----------------------------------------
     # 内訳テーブル(item)にあるitem_codeのタプルを作成する
     def createitemname():
@@ -151,9 +153,7 @@ def create_gui():
     frame1 = tk.Frame(root,pady=10)
     frame1.pack()
     label1 = tk.Label(frame1,text="メーカー",font=("HGPｺﾞｼｯｸM",12))
-    #label1 = tk.Label(text="メーカ")
     label1.pack(side="left")
-    #label1.grid(row=0)
     
     #メーカーコンボボックスの作成
     combo = ttk.Combobox(frame1,state='readonly',width=13,font=("HGPｺﾞｼｯｸM",12))
@@ -440,6 +440,7 @@ def Edit_gui():
     button3.pack(side="right") 
     
     def select_now(event):
+        entry8.configure(state='normal')
         if len(lb.curselection()) == 0:
             return
 
@@ -451,7 +452,7 @@ def Edit_gui():
         element2 = element[0]
 
         sql = ("""
-        select item_company,item_name,item_number,item_surface,item_material,item_use
+        select item_company,item_name,item_number,item_surface,item_material,item_use,id
         from acc_data as a,item as i  
         where a.item_code = i.item_code and 
         item_name = '{}'
@@ -480,7 +481,121 @@ def Edit_gui():
         #用途エントリーに挿入
         entry7.delete(0,tk.END)
         entry7.insert(0,list_data2[5])
+
+        #IDエントリーに挿入
+        entry8.delete(0,tk.END)
+        entry8.insert(0,list_data2[6])
+        entry8.configure(state='readonly')
+
+    #削除ボタンが押されたら
+    def delete():
+        #商品名の読み取り
+        item_name = entry3.get()
+        #品番の読み取り
+        item_number = entry4.get()
+        #表面の読み取り
+        item_surface = entry5.get()
+        #材質の読み取り
+        item_material = entry6.get()
+        #用途の読み取り
+        item_use = entry7.get()
+
+        # リストボックスが選択されていない時
+        if item_name == "" and item_number == "" and item_surface == "" and item_material == "" and item_use == "":
+            messagebox.showwarning("エラー", "選択されていません")
+            return
+        # messageboxで確認
+        f = messagebox.askokcancel("削除", "本当に削除しますか？")
+        if f:
+            pass
+        else:
+            return
+        # SQLを発行してDBへ登録
+        # また、コミットする場合は、commitメソッドを用いる
+        try:
+            c.execute("""
+            delete from acc_data where item_name = '{}' and item_number = '{}' and item_surface = '{}' and
+            item_material = '{}' and item_use = '{}'
+            """.format(item_name,item_number,item_surface,item_material,item_use))
+            c.execute("COMMIT;")
+            #print("1件削除しました")
+        # ドメインエラーなどにより登録できなかった場合のエラー処理
+        except:
+            print("エラーにより登録できませんでした")
+        #リストボックス更新
+        # SELECT文の作成
+        sql = """
+        SELECT item_name
+        FROM acc_data as a,item as i
+        WHERE a.item_code = i.item_code
+        ORDER BY item_company
+        """
+        #リストボックス削除
+        lb.delete(0, tk.END)
+        # リストボックスに商品名挿入
+        for r in c.execute(sql):
+            lb.insert(tk.END,r)
     
+    #更新ボタンが押されたら
+    def update():
+        #商品名の読み取り
+        item_name = entry3.get()
+        #品番の読み取り
+        item_number = entry4.get()
+        #表面の読み取り
+        item_surface = entry5.get()
+        #材質の読み取り
+        item_material = entry6.get()
+        #用途の読み取り
+        item_use = entry7.get()
+        #IDの読み取り
+        item_id = entry8.get()
+
+        # リストボックスが選択されていない時
+        if item_name == "" and item_number == "" and item_surface == "" and item_material == "" and item_use == "":
+            messagebox.showwarning("エラー", "選択されていません")
+            return
+        # messageboxで確認
+        f = messagebox.askokcancel("確認", "更新しますか？")
+        if f:
+            pass
+        else:
+            return
+        # SQLを発行してDBへ登録
+        # また、コミットする場合は、commitメソッドを用いる
+        try:
+            c.execute("""
+            update acc_data set item_name = '{}',item_number = '{}',item_surface = '{}',
+            item_material = '{}',item_use = '{}' where id ='{}'
+            """.format(item_name,item_number,item_surface,item_material,item_use,item_id))
+            c.execute("COMMIT;")
+            #print("1件更新しました")
+        # ドメインエラーなどにより登録できなかった場合のエラー処理
+        except:
+            print("エラーにより登録できませんでした")
+        #リストボックス更新
+        # SELECT文の作成
+        sql = """
+        SELECT item_name
+        FROM acc_data as a,item as i
+        WHERE a.item_code = i.item_code
+        ORDER BY item_company
+        """
+        #リストボックス削除
+        lb.delete(0, tk.END)
+        # リストボックスに商品名挿入
+        for r in c.execute(sql):
+            lb.insert(tk.END,r)
+        #エントリー削除
+        entry2.delete(0,tk.END)
+        entry3.delete(0,tk.END)
+        entry4.delete(0,tk.END)
+        entry5.delete(0,tk.END)
+        entry6.delete(0,tk.END)
+        entry7.delete(0,tk.END)
+        entry8.configure(state='readonly')
+        
+
     # SELECT文の作成
     sql = """
     SELECT item_name
@@ -553,6 +668,30 @@ def Edit_gui():
 
     entry7 = tk.Entry(frame7,width=20,font=("HGPｺﾞｼｯｸM",12))
     entry7.pack(side=tk.LEFT,padx=10)
+
+    #IDラベルとエントリー
+    frame8 = tk.Frame(root,pady=2)
+    frame8.pack(anchor=tk.W)
+    label8 = tk.Label(frame8,text="番号",font=("HGPｺﾞｼｯｸM",12))
+    label8.pack(side=tk.LEFT,padx=5)
+
+    entry8 = tk.Entry(frame8,width=20,font=("HGPｺﾞｼｯｸM",12))
+    entry8.pack(side=tk.LEFT,padx=10)
+    entry8.configure(state='readonly')
+
+    # 削除ボタンの設定
+    button1 = tk.Button(root,text="削除",
+                        font=("HGPｺﾞｼｯｸM",12),
+                        width=7,bg="gray",
+                        command=delete)
+    button1.pack(side=tk.LEFT,padx=10)
+
+    # 更新ボタンの設定
+    button2 = tk.Button(root,text="更新",
+                        font=("HGPｺﾞｼｯｸM",12),
+                        width=7,bg="gray",
+                        command=update)
+    button2.pack(side=tk.LEFT,padx=10)
 
     #スクロールバーの生成・配置
     #scrollbar = ttk.Scrollbar(root, orient=tk.VERTICAL, command=lb.yview)
