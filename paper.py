@@ -439,8 +439,8 @@ def Edit_gui():
     button3 = tk.Button(frame,text="終了",command=quit_button)
     button3.pack(side="right") 
     
+#もし同じ商品名があったらIDが更新されない。
     def select_now(event):
-        entry8.configure(state='normal')
         if len(lb.curselection()) == 0:
             return
 
@@ -464,8 +464,10 @@ def Edit_gui():
         list_data2 = list(itertools.chain.from_iterable(list_data))
 
         #メーカーエントリーに挿入
+        entry2.configure(state='normal')
         entry2.delete(0,tk.END)
         entry2.insert(0,list_data2[0])
+        entry2.configure(state='readonly')
         #商品名エントリーに挿入
         entry3.delete(0,tk.END)
         entry3.insert(0,list_data2[1])
@@ -481,8 +483,8 @@ def Edit_gui():
         #用途エントリーに挿入
         entry7.delete(0,tk.END)
         entry7.insert(0,list_data2[5])
-
         #IDエントリーに挿入
+        entry8.configure(state='normal')
         entry8.delete(0,tk.END)
         entry8.insert(0,list_data2[6])
         entry8.configure(state='readonly')
@@ -499,9 +501,12 @@ def Edit_gui():
         item_material = entry6.get()
         #用途の読み取り
         item_use = entry7.get()
+        #IDの読み取り
+        item_id = entry8.get()
 
         # リストボックスが選択されていない時
-        if item_name == "" and item_number == "" and item_surface == "" and item_material == "" and item_use == "":
+        if item_id == "":
+        #if item_name == "" and item_number == "" and item_surface == "" and item_material == "" and item_use == "":
             messagebox.showwarning("エラー", "選択されていません")
             return
         # messageboxで確認
@@ -515,8 +520,8 @@ def Edit_gui():
         try:
             c.execute("""
             delete from acc_data where item_name = '{}' and item_number = '{}' and item_surface = '{}' and
-            item_material = '{}' and item_use = '{}'
-            """.format(item_name,item_number,item_surface,item_material,item_use))
+            item_material = '{}' and item_use = '{}' and id = '{}'
+            """.format(item_name,item_number,item_surface,item_material,item_use,item_id))
             c.execute("COMMIT;")
             #print("1件削除しました")
         # ドメインエラーなどにより登録できなかった場合のエラー処理
@@ -530,6 +535,18 @@ def Edit_gui():
         WHERE a.item_code = i.item_code
         ORDER BY item_company
         """
+        #エントリー削除
+        entry2.configure(state='normal')
+        entry2.delete(0,tk.END)
+        entry2.configure(state='readonly')
+        entry3.delete(0,tk.END)
+        entry4.delete(0,tk.END)
+        entry5.delete(0,tk.END)
+        entry6.delete(0,tk.END)
+        entry7.delete(0,tk.END)
+        entry8.configure(state='normal')
+        entry8.delete(0,tk.END)
+        entry8.configure(state='readonly')
         #リストボックス削除
         lb.delete(0, tk.END)
         # リストボックスに商品名挿入
@@ -566,7 +583,7 @@ def Edit_gui():
         try:
             c.execute("""
             update acc_data set item_name = '{}',item_number = '{}',item_surface = '{}',
-            item_material = '{}',item_use = '{}' where id ='{}'
+            item_material = '{}',item_use = '{}' where id ='{}' 
             """.format(item_name,item_number,item_surface,item_material,item_use,item_id))
             c.execute("COMMIT;")
             #print("1件更新しました")
@@ -587,12 +604,16 @@ def Edit_gui():
         for r in c.execute(sql):
             lb.insert(tk.END,r)
         #エントリー削除
+        entry2.configure(state='normal')
         entry2.delete(0,tk.END)
+        entry2.configure(state='readonly')
         entry3.delete(0,tk.END)
         entry4.delete(0,tk.END)
         entry5.delete(0,tk.END)
         entry6.delete(0,tk.END)
         entry7.delete(0,tk.END)
+        entry8.configure(state='normal')
+        entry8.delete(0,tk.END)
         entry8.configure(state='readonly')
         
 
@@ -623,6 +644,7 @@ def Edit_gui():
 
     entry2 = tk.Entry(frame2,width=20,font=("HGPｺﾞｼｯｸM",12))
     entry2.pack(side=tk.LEFT,padx=10)
+    entry2.configure(state='readonly')
 
     #商品名ラベルとエントリー
     frame3 = tk.Frame(root,pady=4)
@@ -702,3 +724,7 @@ def Edit_gui():
 
 # GUI画面の表示
 create_gui()
+
+
+#問題442行目
+#ID検索にする
