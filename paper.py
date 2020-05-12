@@ -234,17 +234,6 @@ def select_gui():
         # treeviewのアイテムをすべて削除
         tree.delete(*tree.get_children())
 
-        # item_companyをWHERE句に渡してitem_codeを取得する(メーカー名取得)
-        #item_code = c.execute("""
-        #            SELECT item_code FROM item
-        #            WHERE item_company = '{}'
-        #            """.format(item_company))
-        #item_code = item_code.fetchone()[0]
-        
-
-        #print(item_company)
-        #print(item_code)
-
         #SELECT文の作成
         sql = """
         SELECT item_company,item_name,item_number,item_surface,item_material,item_use
@@ -349,7 +338,7 @@ def select_gui():
     button5.pack(side="left",padx=10)
 
     # ツリービューの作成
-    tree = ttk.Treeview(root,padding=10)
+    tree = ttk.Treeview(root,padding=10,height = 15)
     # 列インデックスの作成
     tree["columns"] = (1,2,3,4,5,6)
     # 表スタイルの設定(headingsはツリー形式ではない、通常の表形式)
@@ -393,7 +382,7 @@ def select_gui():
         i+=1
 
     # ツリービューの配置
-    tree.pack()
+    tree.pack(fill = tk.Y)
 
     # メインループ
     root.mainloop()
@@ -425,7 +414,7 @@ def Edit_gui():
     # rootフレームの設定
     root = tk.Tk()
     root.title("印画紙-編集画面")
-    root.geometry("400x300")
+    root.geometry("480x300")
 
     # メニューの設定
     frame = tk.Frame(root,bd=2,relief="ridge")
@@ -439,28 +428,45 @@ def Edit_gui():
     button3 = tk.Button(frame,text="終了",command=quit_button)
     button3.pack(side="right") 
     
+
 #もし同じ商品名があったらIDが更新されない。
+#表示画面で商品名を押された時の処理
     def select_now(event):
         if len(lb.curselection()) == 0:
             return
 
         #選択された場所の番号(インデックス)を取得
-        index = lb.curselection()[0]
+        index = int(lb.curselection()[0])
         #インデックスから要素を取得
-        element = lb.get(index)
+        #element = lb.get(index)
         #タプル型なので要素だけを取得
-        element2 = element[0]
+        #element2 = element[0]
+        sql2 = """
+        SELECT id,item_name
+        FROM acc_data as a,item as i
+        WHERE a.item_code = i.item_code
+        ORDER BY id
+        """
+        aiueo = c.execute(sql2)
+        list_tuple_data = aiueo.fetchall()
+        #print(list_tuple_data)
 
+        #sql = ("""
+        #select item_company,item_name,item_number,item_surface,item_material,item_use,id
+        #from acc_data as a,item as i  
+        #where a.item_code = i.item_code and 
+        #item_name = '{}'
+        #""").format(element2)
         sql = ("""
-        select item_company,item_name,item_number,item_surface,item_material,item_use,id
+        select item_company,item_name,item_number,item_surface,item_material,item_use
         from acc_data as a,item as i  
         where a.item_code = i.item_code and 
-        item_name = '{}'
-        """).format(element2)
+        id = '{}'
+        """).format(list_tuple_data[index][0],)
         #SQL文にする
         r = c.execute(sql)
         list_data = r.fetchall()
-        #itertools.chain.from_iterable()で2次元のリストを平坦化
+        #itertools.chain.from_iterable()で2次元のリストを平坦化(タプル型の[0][1]でもアクセス化)
         list_data2 = list(itertools.chain.from_iterable(list_data))
 
         #メーカーエントリーに挿入
@@ -484,10 +490,10 @@ def Edit_gui():
         entry7.delete(0,tk.END)
         entry7.insert(0,list_data2[5])
         #IDエントリーに挿入
-        entry8.configure(state='normal')
-        entry8.delete(0,tk.END)
-        entry8.insert(0,list_data2[6])
-        entry8.configure(state='readonly')
+        #entry8.configure(state='normal')
+        #entry8.delete(0,tk.END)
+        #entry8.insert(0,list_data2[6])
+        #entry8.configure(state='readonly')
 
     #削除ボタンが押されたら
     def delete():
@@ -502,10 +508,10 @@ def Edit_gui():
         #用途の読み取り
         item_use = entry7.get()
         #IDの読み取り
-        item_id = entry8.get()
+        #item_id = entry8.get()
 
         # リストボックスが選択されていない時
-        if item_id == "":
+        if item_name == "":
         #if item_name == "" and item_number == "" and item_surface == "" and item_material == "" and item_use == "":
             messagebox.showwarning("エラー", "選択されていません")
             return
@@ -518,10 +524,19 @@ def Edit_gui():
         # SQLを発行してDBへ登録
         # また、コミットする場合は、commitメソッドを用いる
         try:
+            sql2 = """
+            SELECT id,item_name
+            FROM acc_data as a,item as i
+            WHERE a.item_code = i.item_code
+            ORDER BY id
+            """
+            aiueo = c.execute(sql2)
+            list_tuple_data = aiueo.fetchall()
+            index = int(lb.curselection()[0])
             c.execute("""
             delete from acc_data where item_name = '{}' and item_number = '{}' and item_surface = '{}' and
             item_material = '{}' and item_use = '{}' and id = '{}'
-            """.format(item_name,item_number,item_surface,item_material,item_use,item_id))
+            """.format(item_name,item_number,item_surface,item_material,item_use,list_tuple_data[index][0],))
             c.execute("COMMIT;")
             #print("1件削除しました")
         # ドメインエラーなどにより登録できなかった場合のエラー処理
@@ -533,8 +548,16 @@ def Edit_gui():
         SELECT item_name
         FROM acc_data as a,item as i
         WHERE a.item_code = i.item_code
-        ORDER BY item_company
+        ORDER BY id
         """
+        sql2 = """
+        SELECT id,item_name
+        FROM acc_data as a,item as i
+        WHERE a.item_code = i.item_code
+        ORDER BY id
+        """
+        aiueo = c.execute(sql2)
+        list_tuple_data = aiueo.fetchall()
         #エントリー削除
         entry2.configure(state='normal')
         entry2.delete(0,tk.END)
@@ -544,14 +567,15 @@ def Edit_gui():
         entry5.delete(0,tk.END)
         entry6.delete(0,tk.END)
         entry7.delete(0,tk.END)
-        entry8.configure(state='normal')
-        entry8.delete(0,tk.END)
-        entry8.configure(state='readonly')
+        #entry8.configure(state='normal')
+        #entry8.delete(0,tk.END)
+        #entry8.configure(state='readonly')
         #リストボックス削除
         lb.delete(0, tk.END)
         # リストボックスに商品名挿入
         for r in c.execute(sql):
             lb.insert(tk.END,r)
+        #print(list_tuple_data)
     
     #更新ボタンが押されたら
     def update():
@@ -566,7 +590,7 @@ def Edit_gui():
         #用途の読み取り
         item_use = entry7.get()
         #IDの読み取り
-        item_id = entry8.get()
+        #item_id = entry8.get()
 
         # リストボックスが選択されていない時
         if item_name == "" and item_number == "" and item_surface == "" and item_material == "" and item_use == "":
@@ -581,10 +605,19 @@ def Edit_gui():
         # SQLを発行してDBへ登録
         # また、コミットする場合は、commitメソッドを用いる
         try:
+            sql2 = """
+            SELECT id,item_name
+            FROM acc_data as a,item as i
+            WHERE a.item_code = i.item_code
+            ORDER BY id
+            """
+            aiueo = c.execute(sql2)
+            list_tuple_data = aiueo.fetchall()
+            index = int(lb.curselection()[0])
             c.execute("""
             update acc_data set item_name = '{}',item_number = '{}',item_surface = '{}',
             item_material = '{}',item_use = '{}' where id ='{}' 
-            """.format(item_name,item_number,item_surface,item_material,item_use,item_id))
+            """.format(item_name,item_number,item_surface,item_material,item_use,list_tuple_data[index][0],))
             c.execute("COMMIT;")
             #print("1件更新しました")
         # ドメインエラーなどにより登録できなかった場合のエラー処理
@@ -596,7 +629,7 @@ def Edit_gui():
         SELECT item_name
         FROM acc_data as a,item as i
         WHERE a.item_code = i.item_code
-        ORDER BY item_company
+        ORDER BY id
         """
         #リストボックス削除
         lb.delete(0, tk.END)
@@ -612,18 +645,39 @@ def Edit_gui():
         entry5.delete(0,tk.END)
         entry6.delete(0,tk.END)
         entry7.delete(0,tk.END)
-        entry8.configure(state='normal')
-        entry8.delete(0,tk.END)
-        entry8.configure(state='readonly')
+        #entry8.configure(state='normal')
+        #entry8.delete(0,tk.END)
+        #entry8.configure(state='readonly')
+
+        #sql2更新
+        sql2 = """
+        SELECT id,item_name
+        FROM acc_data as a,item as i
+        WHERE a.item_code = i.item_code
+        ORDER BY id
+        """
+        aiueo = c.execute(sql2)
+        list_tuple_data = aiueo.fetchall()
+        #print(list_tuple_data)
         
+    sql2 = """
+    SELECT id,item_name
+    FROM acc_data as a,item as i
+    WHERE a.item_code = i.item_code
+    ORDER BY id
+    """
+    aiueo = c.execute(sql2)
+    list_tuple_data = aiueo.fetchall()
+    #print(list_tuple_data)
 
     # SELECT文の作成
     sql = """
     SELECT item_name
     FROM acc_data as a,item as i
     WHERE a.item_code = i.item_code
-    ORDER BY item_company
+    ORDER BY id
     """
+
     # リストボックス作成
     lb = tk.Listbox(root, width=20,selectmode=tk.SINGLE,font=("HGPｺﾞｼｯｸM",12))
 
@@ -692,14 +746,14 @@ def Edit_gui():
     entry7.pack(side=tk.LEFT,padx=10)
 
     #IDラベルとエントリー
-    frame8 = tk.Frame(root,pady=2)
-    frame8.pack(anchor=tk.W)
-    label8 = tk.Label(frame8,text="番号",font=("HGPｺﾞｼｯｸM",12))
-    label8.pack(side=tk.LEFT,padx=5)
+    #frame8 = tk.Frame(root,pady=2)
+    #frame8.pack(anchor=tk.W)
+    #label8 = tk.Label(frame8,text="番号",font=("HGPｺﾞｼｯｸM",12))
+    #label8.pack(side=tk.LEFT,padx=5)
 
-    entry8 = tk.Entry(frame8,width=20,font=("HGPｺﾞｼｯｸM",12))
-    entry8.pack(side=tk.LEFT,padx=10)
-    entry8.configure(state='readonly')
+    #entry8 = tk.Entry(frame8,width=20,font=("HGPｺﾞｼｯｸM",12))
+    #entry8.pack(side=tk.LEFT,padx=10)
+    #entry8.configure(state='readonly')
 
     # 削除ボタンの設定
     button1 = tk.Button(root,text="削除",
