@@ -428,8 +428,6 @@ def Edit_gui():
     button3 = tk.Button(frame,text="終了",command=quit_button)
     button3.pack(side="right") 
     
-
-#もし同じ商品名があったらIDが更新されない。
 #表示画面で商品名を押された時の処理
     def select_now(event):
         if len(lb.curselection()) == 0:
@@ -779,6 +777,3 @@ def Edit_gui():
 # GUI画面の表示
 create_gui()
 
-
-#問題442行目
-#ID検索にする
