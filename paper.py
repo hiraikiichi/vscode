@@ -3,6 +3,9 @@ import tkinter.ttk as ttk
 from tkinter import messagebox
 import sqlite3
 import itertools
+import requests
+import re
+from bs4 import BeautifulSoup
 
 
 # 登録画面のGUI
@@ -79,6 +82,45 @@ def create_gui():
         # リスト型のliをタプル型に変換して、ファンクションに戻す
         return tuple(li)
     # ----------------------------------------
+    # スクレイピング
+    def URL_get():
+        # URL読み取り
+        URL = entry6.get()
+        # スクレイピング対象の URL にリクエストを送り HTML を取得する
+        res = requests.get(URL)
+        # レスポンスの HTML から BeautifulSoup オブジェクトを作る
+        soup = BeautifulSoup(res.content, 'html.parser',from_encoding='utf-8')
+
+        # h3タグの商品名取得,エントリー挿入
+        title_text = soup.find('h3').get_text()
+        #print(title_text)
+        entry1.delete(0,tk.END)
+        entry1.insert(0,title_text)
+
+        # 品番取得,エントリー挿入
+        part_number = soup.find('td', text=re.compile("A4")).text
+        #print(part_number[:-6])
+        entry2.delete(0,tk.END)
+        entry2.insert(0,part_number[:-6])
+
+        # 表面情報取得,エントリー挿入
+        surface = soup.find('td', text=re.compile("沢")).text
+        #print(surface)
+        entry3.delete(0,tk.END)
+        entry3.insert(0,surface)
+
+        # 材質情報取得,エントリー挿入	
+        material = soup.find_all('td')[6]
+        #print(*material)
+        entry4.delete(0,tk.END)
+        entry4.insert(0,*material)
+
+        # 用途情報取得,エントリー挿入
+        use = soup.find_all('ul')[3]
+        #print(use.get_text())
+        entry5.delete(0,tk.END)
+        entry5.insert(0,use.get_text())
+
     
     # 空のデータベースを作成して接続する
     dbname = "paperdatabase.db"
@@ -103,12 +145,12 @@ def create_gui():
         ( 
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             acc_date DEFAULT CURRENT_TIMESTAMP, 
-            item_code INTEGER NOT NULL,
-            item_name TEXT NOT NULL,
-            item_number TEXT NOT NULL,
-            item_surface TEXT NOT NULL,
-            item_material TEXT NOT NULL,
-            item_use TEXT NOT NULL,
+            item_code INTEGER ,
+            item_name TEXT ,
+            item_number TEXT ,
+            item_surface TEXT ,
+            item_material TEXT ,
+            item_use TEXT ,
             
             FOREIGN KEY(item_code) REFERENCES item(item_code)
         )
@@ -135,7 +177,8 @@ def create_gui():
     # rootフレームの設定
     root = tk.Tk()
     root.title("印画紙")
-    root.geometry("300x400")
+    root.geometry("400x400")
+    #root.configure(background='white')
 
     # メニューの設定
     frame = tk.Frame(root,bd=2,relief="ridge")
@@ -166,7 +209,7 @@ def create_gui():
     frame2.pack()
     label2 = tk.Label(frame2,text="商品名",font=("HGPｺﾞｼｯｸM",12))
     label2.pack(side="left")
-    entry1 = tk.Entry(frame2,justify="center",width=15,font=("HGPｺﾞｼｯｸM",12))
+    entry1 = tk.Entry(frame2,justify="center",width=18,font=("HGPｺﾞｼｯｸM",12))
     entry1.pack(side="left")
 
     #品番のラベルとエントリーの設定
@@ -174,7 +217,7 @@ def create_gui():
     frame3.pack()
     label3 = tk.Label(frame3,font=("HGPｺﾞｼｯｸM",12),text="品番")
     label3.pack(side="left")
-    entry2 = tk.Entry(frame3,font=("HGPｺﾞｼｯｸM",12),justify="center",width=15)
+    entry2 = tk.Entry(frame3,font=("HGPｺﾞｼｯｸM",12),justify="center",width=20)
     entry2.pack(side="left")
 
     #表面のラベルとエントリーの設定
@@ -182,7 +225,7 @@ def create_gui():
     frame4.pack()
     label4 = tk.Label(frame4,font=("HGPｺﾞｼｯｸM",12),text="表面")
     label4.pack(side="left")
-    entry3 = tk.Entry(frame4,font=("HGPｺﾞｼｯｸM",12),justify="center",width=15)
+    entry3 = tk.Entry(frame4,font=("HGPｺﾞｼｯｸM",12),justify="center",width=20)
     entry3.pack(side="left")
 
     #材質のラベルとエントリーの設定
@@ -190,7 +233,7 @@ def create_gui():
     frame5.pack()
     label5 = tk.Label(frame5,font=("HGPｺﾞｼｯｸM",12),text="材質")
     label5.pack(side="left")
-    entry4 = tk.Entry(frame5,font=("HGPｺﾞｼｯｸM",12),justify="center",width=15)
+    entry4 = tk.Entry(frame5,font=("HGPｺﾞｼｯｸM",12),justify="center",width=20)
     entry4.pack(side="left")
 
     #用途のラベルとエントリーの設定
@@ -198,7 +241,7 @@ def create_gui():
     frame6.pack()
     label6 = tk.Label(frame6,font=("HGPｺﾞｼｯｸM",12),text="用途")
     label6.pack(side="left")
-    entry5 = tk.Entry(frame6,font=("HGPｺﾞｼｯｸM",12),justify="center",width=15)
+    entry5 = tk.Entry(frame6,font=("HGPｺﾞｼｯｸM",12),justify="center",width=20)
     entry5.pack(side="left")
 
     # 登録ボタンの設定
@@ -207,6 +250,21 @@ def create_gui():
                         width=10,bg="gray",
                         command=lambda:create_sql(combo.get()))
     button4.pack()
+
+    #urlのラベルとエントリーの設定
+    frame7 = tk.Frame(root,pady=10)
+    frame7.pack()
+    label7 = tk.Label(frame7,font=("HGPｺﾞｼｯｸM",12),text="URL(ピクトリコのみ)")
+    label7.pack(side="left")
+    entry6 = tk.Entry(frame7,font=("HGPｺﾞｼｯｸM",12),justify="center",width=15)
+    entry6.pack(side="left")
+
+    # URL登録ボタンの設定
+    button5 = tk.Button(frame7,text="送信",
+                        font=("HGPｺﾞｼｯｸM",10),
+                        width=5,bg="gray",
+                        command=URL_get)
+    button5.pack(padx=10)
     
     root.mainloop()
 
@@ -414,7 +472,7 @@ def Edit_gui():
     # rootフレームの設定
     root = tk.Tk()
     root.title("印画紙-編集画面")
-    root.geometry("480x300")
+    root.geometry("500x300")
 
     # メニューの設定
     frame = tk.Frame(root,bd=2,relief="ridge")
@@ -449,12 +507,6 @@ def Edit_gui():
         list_tuple_data = aiueo.fetchall()
         #print(list_tuple_data)
 
-        #sql = ("""
-        #select item_company,item_name,item_number,item_surface,item_material,item_use,id
-        #from acc_data as a,item as i  
-        #where a.item_code = i.item_code and 
-        #item_name = '{}'
-        #""").format(element2)
         sql = ("""
         select item_company,item_name,item_number,item_surface,item_material,item_use
         from acc_data as a,item as i  
@@ -487,11 +539,6 @@ def Edit_gui():
         #用途エントリーに挿入
         entry7.delete(0,tk.END)
         entry7.insert(0,list_data2[5])
-        #IDエントリーに挿入
-        #entry8.configure(state='normal')
-        #entry8.delete(0,tk.END)
-        #entry8.insert(0,list_data2[6])
-        #entry8.configure(state='readonly')
 
     #削除ボタンが押されたら
     def delete():
@@ -565,9 +612,6 @@ def Edit_gui():
         entry5.delete(0,tk.END)
         entry6.delete(0,tk.END)
         entry7.delete(0,tk.END)
-        #entry8.configure(state='normal')
-        #entry8.delete(0,tk.END)
-        #entry8.configure(state='readonly')
         #リストボックス削除
         lb.delete(0, tk.END)
         # リストボックスに商品名挿入
@@ -587,8 +631,6 @@ def Edit_gui():
         item_material = entry6.get()
         #用途の読み取り
         item_use = entry7.get()
-        #IDの読み取り
-        #item_id = entry8.get()
 
         # リストボックスが選択されていない時
         if item_name == "" and item_number == "" and item_surface == "" and item_material == "" and item_use == "":
@@ -600,27 +642,33 @@ def Edit_gui():
             pass
         else:
             return
-        # SQLを発行してDBへ登録
-        # また、コミットする場合は、commitメソッドを用いる
-        try:
-            sql2 = """
+
+        # ID取得
+        sql2 = """
             SELECT id,item_name
             FROM acc_data as a,item as i
             WHERE a.item_code = i.item_code
             ORDER BY id
             """
-            aiueo = c.execute(sql2)
-            list_tuple_data = aiueo.fetchall()
-            index = int(lb.curselection()[0])
-            c.execute("""
+        aiueo = c.execute(sql2)
+        list_tuple_data = aiueo.fetchall()
+        index = int(lb.curselection()[0])
+
+        
+        try:
+            # SQLを発行してDBへ登録
+            # また、コミットする場合は、commitメソッドを用いる
+            updatesql="""
             update acc_data set item_name = '{}',item_number = '{}',item_surface = '{}',
-            item_material = '{}',item_use = '{}' where id ='{}' 
-            """.format(item_name,item_number,item_surface,item_material,item_use,list_tuple_data[index][0],))
+            item_material = '{}',item_use = '{}' where id = '{}';
+            """.format(item_name,item_number,item_surface,item_material,item_use,list_tuple_data[index][0],)
+            c.execute(updatesql)
             c.execute("COMMIT;")
             #print("1件更新しました")
         # ドメインエラーなどにより登録できなかった場合のエラー処理
         except:
-            print("エラーにより登録できませんでした")
+            pass
+            #print("エラー")
         #リストボックス更新
         # SELECT文の作成
         sql = """
@@ -643,9 +691,6 @@ def Edit_gui():
         entry5.delete(0,tk.END)
         entry6.delete(0,tk.END)
         entry7.delete(0,tk.END)
-        #entry8.configure(state='normal')
-        #entry8.delete(0,tk.END)
-        #entry8.configure(state='readonly')
 
         #sql2更新
         sql2 = """
@@ -657,16 +702,6 @@ def Edit_gui():
         aiueo = c.execute(sql2)
         list_tuple_data = aiueo.fetchall()
         #print(list_tuple_data)
-        
-    sql2 = """
-    SELECT id,item_name
-    FROM acc_data as a,item as i
-    WHERE a.item_code = i.item_code
-    ORDER BY id
-    """
-    aiueo = c.execute(sql2)
-    list_tuple_data = aiueo.fetchall()
-    #print(list_tuple_data)
 
     # SELECT文の作成
     sql = """
@@ -677,7 +712,7 @@ def Edit_gui():
     """
 
     # リストボックス作成
-    lb = tk.Listbox(root, width=20,selectmode=tk.SINGLE,font=("HGPｺﾞｼｯｸM",12))
+    lb = tk.Listbox(root, width=25,exportselection=False,selectmode=tk.SINGLE,font=("HGPｺﾞｼｯｸM",12))
 
     # リストボックスに商品名入れる
     for r in c.execute(sql):
@@ -742,16 +777,6 @@ def Edit_gui():
 
     entry7 = tk.Entry(frame7,width=20,font=("HGPｺﾞｼｯｸM",12))
     entry7.pack(side=tk.LEFT,padx=10)
-
-    #IDラベルとエントリー
-    #frame8 = tk.Frame(root,pady=2)
-    #frame8.pack(anchor=tk.W)
-    #label8 = tk.Label(frame8,text="番号",font=("HGPｺﾞｼｯｸM",12))
-    #label8.pack(side=tk.LEFT,padx=5)
-
-    #entry8 = tk.Entry(frame8,width=20,font=("HGPｺﾞｼｯｸM",12))
-    #entry8.pack(side=tk.LEFT,padx=10)
-    #entry8.configure(state='readonly')
 
     # 削除ボタンの設定
     button1 = tk.Button(root,text="削除",
